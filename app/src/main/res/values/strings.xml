@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">TODO</string>
+    <string name="Open">open</string>
+    <string name="Close">close</string>
+</resources>
