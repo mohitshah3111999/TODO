@@ -67,6 +67,7 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="320dp"
         android:ems="10"
+
         android:hint="Add Title (max length 10)"
         android:inputType="textPersonName"
         android:paddingLeft="10dp"
