@@ -17,17 +17,15 @@
         tools:ignore="MissingConstraints" />
 
 
-    <EditText
+    <TextView
         android:id="@+id/editText"
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="460dp"
-        android:cursorVisible="false"
-        android:ems="10"
-        android:focusable="false"
-        android:gravity="start|top"
-        android:inputType="none"
+        android:layout_height="167dp"
+        android:layout_marginBottom="328dp"
+        android:gravity="center_horizontal"
+        android:text="Description"
         android:textColor="#000000"
+        android:textSize="36sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
