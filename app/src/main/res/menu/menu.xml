@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <item
-        android:id="@+id/changeName"
-        android:icon="@drawable/ic_account_circle_black_24dp"
-        android:title="Change Name" />
-
-</menu>

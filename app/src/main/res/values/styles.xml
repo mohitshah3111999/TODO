@@ -8,4 +8,10 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="DialogTheme" parent="Theme.AppCompat.Light.Dialog">
+        <item name="android:layout_gravity">center</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorControlActivated">#000000</item>
+    </style>
+
 </resources>

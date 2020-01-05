@@ -1,143 +1,133 @@
 package com.company.mohitshah3111999.todo;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.appcompat.widget.Toolbar;
 
-import android.app.TimePickerDialog;
-import android.content.Context;
+import android.annotation.SuppressLint;
+import android.app.AlertDialog;
+import android.app.DatePickerDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.graphics.Color;
 import android.os.Bundle;
-import android.provider.CalendarContract;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.CalendarView;
+import android.widget.DatePicker;
 import android.widget.ListView;
-import android.widget.TimePicker;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.navigation.NavigationView;
 
-import java.io.IOException;
-import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
 
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener{
-    DrawerLayout drawerLayout;
-    ActionBarDrawerToggle actionBarDrawerToggle;
+public class MainActivity extends AppCompatActivity{
     ArrayList<String> dates;
-    static String selectedDay;
-    static ArrayList<String> finalData;
+    SQLiteDatabase sqLiteDatabase;
+    CustomAdapterForMainScene customAdapterForMainScene;
+    TextView textView;
+//    TODO date format will be "dd/MM/yyyy".
 
     public void showCalender(View view){
-        Intent intent = new Intent(getApplicationContext(), CalenderActivity.class);
-        startActivity(intent);
+        final Calendar calendar = Calendar.getInstance();
+        final int[] myear = {calendar.get(Calendar.YEAR)};
+        final int[] mmonth = {calendar.get(Calendar.MONTH)};
+        final int[] mday = {calendar.get(Calendar.DAY_OF_MONTH)};
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this, R.style.DialogTheme, new DatePickerDialog.OnDateSetListener() {
+            @SuppressLint("SimpleDateFormat")
+            @Override
+            public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
+                String currentDateString = mday[0] + "/" + (mmonth[0] + 1) + "/" + myear[0];
+                String selectedDate = dayOfMonth + "/" + (month + 1) + "/" + year;
+                Date dateInCurrent = null;
+                Date dateInSelected = null;
+                try {
+                    dateInCurrent = new SimpleDateFormat("dd/MM/yyyy").parse(currentDateString);
+                    dateInSelected = new SimpleDateFormat("dd/MM/yyyy").parse(selectedDate);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                if(dateInSelected.compareTo(dateInCurrent) >= 0){
+                    Date passedDate = null;
+                    try {
+                        passedDate = new SimpleDateFormat("dd/MM/yyyy").parse(dayOfMonth + "/" + (month + 1) + "/" + year);
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                    if(checkIfDateAlreadyPresentOrNot(passedDate)) {
+                        sqLiteDatabase.execSQL("insert into newdates values("
+                                + dayOfMonth
+                                + ", " + (month + 1) +
+                                ", " + year + ")");
+                        dates.add(dayOfMonth + "/" + (month + 1) + "/" + year);
+                        try {
+                            makeInOrder();
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
+                        textView.setVisibility(View.INVISIBLE);
+                        customAdapterForMainScene.notifyDataSetChanged();
+                    }
+                }
+            }
+        }, myear[0], mmonth[0], mday[0]);
+        datePickerDialog.show();
     }
 
+    private boolean checkIfDateAlreadyPresentOrNot(Date s) {
+        String ndate = new SimpleDateFormat("dd/MM/yyyy").format(s);
+        if(dates.contains(ndate)) {
+            Toast.makeText(this, "Date Is Already present", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        else
+            return true;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        drawerLayout = findViewById(R.id.drawer);
 
-        final SQLiteDatabase sqLiteDatabase = this.openOrCreateDatabase("dates", MODE_PRIVATE, null);
-        sqLiteDatabase.execSQL("create table if not exists newdates(date text primary key)");
+        Toolbar toolbar = findViewById(R.id.my_toolbar);
+        setSupportActionBar(toolbar);
+        getWindow().setStatusBarColor(Color.WHITE);
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
+
+        textView = findViewById(R.id.textView4);
+
+        sqLiteDatabase = this.openOrCreateDatabase("dates", MODE_PRIVATE, null);
+        sqLiteDatabase.execSQL("create table if not exists newdates(day integer, month integer, year integer)");
         sqLiteDatabase.execSQL("create table if not exists data(day text, fromTime text, toTime text, title text, description text)");
 
-        NavigationView navigationView = findViewById(R.id.navigator);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        actionBarDrawerToggle = new ActionBarDrawerToggle(this, drawerLayout, R.string.Open, R.string.Close);
-        drawerLayout.addDrawerListener(actionBarDrawerToggle);
-        actionBarDrawerToggle.syncState();
-        if(getSupportActionBar() != null)
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         ListView listView = findViewById(R.id.listView);
         dates = new ArrayList<>();
+        customAdapterForMainScene = new CustomAdapterForMainScene(getApplicationContext(), dates);
+        listView.setAdapter(customAdapterForMainScene);
 
-//      TODO create SQL query to select a particular item from databse, we will receive the date from the calender.
-        String s;
-        if(getIntent()!= null){
-            Intent intent = getIntent();
-            if(intent.getStringExtra("date") != null) {
-                s = intent.getStringExtra("date");
-                try {
-                    sqLiteDatabase.execSQL("insert into newdates values(?)", new String[]{s});
-                }catch (Exception e){
-                    Log.i("Hello", "Here");
-                }
-                dates.add(s);
-            }
-        }
+        addData();
 
-
-        Cursor cursor = sqLiteDatabase.rawQuery("select * from newdates", null);
-        finalData = new ArrayList<>();
-        int definer = cursor.getColumnIndex("date");
-        DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-
-        cursor.moveToFirst();
         try {
-            while (true) {
-                String answer = cursor.getString(definer);
-                Date date = new Date();
-                String nDate = dateFormat.format(date);
-                Date date1 = dateFormat.parse(answer);
-                Date date2 = dateFormat.parse(nDate);
-                assert date1 != null;
-                assert date2 != null;
-                Log.i("comparison", String.valueOf(date2.compareTo(date1)));
-                Log.i("Date1", date1.toString());
-                Log.i("Date2", date2.toString());
-                if(date2.compareTo(date1) <= 0) {
-                    finalData.add(answer);
-                }
-                cursor.moveToNext();
-            }
-        }catch (Exception e){
-            Log.i("errorIs", e.toString());
+            makeInOrder();
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
-
-//        TODO Rearrange the list items, so that particular date remains at particular place.
-        Collections.sort(finalData);
-
-        Date today = new Date();
-        try {
-            if (finalData.get(0).equals(dateFormat.format(today))) {
-
-                Log.i("Yes", "It's matching");
-            }
-        }catch (Exception e){
-            Log.i("ExceptionIs", e.toString());
-        }
-
-        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, finalData);
-        listView.setAdapter(arrayAdapter);
 
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                 Intent intent = new Intent(getApplicationContext(), ScheduleForCurrentDayActivity.class);
-                intent.putExtra("date", finalData.get(i));
-                selectedDay = finalData.get(i);
+                intent.putExtra("currentDay", dates.get(i));
                 startActivity(intent);
-                Toast.makeText(MainActivity.this, finalData.get(i), Toast.LENGTH_SHORT).show();
             }
         });
 
@@ -151,10 +141,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
                         .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i1) {
-                                sqLiteDatabase.execSQL("delete from newdates where date = ?", new String[]{finalData.get(i)});
-                                sqLiteDatabase.execSQL("delete from data where day = ?", new String[]{finalData.get(i)});
-                                finalData.remove(i);
-                                arrayAdapter.notifyDataSetChanged();
+                                String date = dates.get(i);
+                                String day = date.split("/")[0];
+                                String month = date.split("/")[1];
+                                String year = date.split("/")[2];
+                                sqLiteDatabase.execSQL("delete from newdates where day = " + day +
+                                        " and month = " + month + " and year = " + year);
+                                sqLiteDatabase.execSQL("delete from data where day = '" + date + "'");
+                                dates.remove(i);
+                                if(dates.size() == 0) {
+                                    textView.setVisibility(View.VISIBLE);
+                                }
+                                customAdapterForMainScene.notifyDataSetChanged();
                             }
                         })
                         .setNegativeButton("No", null)
@@ -166,20 +164,73 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
 
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        if(actionBarDrawerToggle.onOptionsItemSelected(item)){
-            return true;
+    private void makeInOrder() throws ParseException {
+//        Method to make all items in order.
+        ArrayList<Date> newDates = new ArrayList<>();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("dd/MM/yyyy");
+        for(String date: dates){
+            newDates.add(simpleDateFormat.parse(date));
         }
-        return super.onOptionsItemSelected(item);
+        Collections.sort(newDates);
+        dates.clear();
+        for(Date getter: newDates){
+            String upcomingDate = simpleDateFormat.format(getter);
+            dates.add(upcomingDate);
+        }
+        customAdapterForMainScene.notifyDataSetChanged();
+    }
+
+    private void addData() {
+//        Method to add data in arrayList.
+        Cursor cursor = sqLiteDatabase.rawQuery("select * from newdates", null);
+        int day = cursor.getColumnIndex("day");
+        int month = cursor.getColumnIndex("month");
+        int year = cursor.getColumnIndex("year");
+        cursor.moveToFirst();
+
+        try{
+            while (true){
+                int obtainDay = cursor.getInt(day);
+                int obtainMonth = cursor.getInt(month);
+                int obtainYear = cursor.getInt(year);
+                String newday = obtainDay + "/" + obtainMonth + "/" + obtainYear;
+                if(dateChecker(obtainDay, obtainMonth, obtainYear)) {
+                    dates.add(newday);
+                }else{
+                    sqLiteDatabase.execSQL("delete from newdates where day = " + obtainDay +
+                    " and month = " + obtainMonth + " and year = " + obtainYear);
+                    sqLiteDatabase.execSQL("delete from data where day = '" + newday + "'");
+                }
+                cursor.moveToNext();
+            }
+        }catch (Exception e){
+            Log.i("ErrorIs", e.toString());
+        }
+        customAdapterForMainScene.notifyDataSetChanged();
+        if(dates.size() != 0){
+            textView.setVisibility(View.INVISIBLE);
+        }
     }
 
 
-    @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem menuItem) {
-        switch (menuItem.getItemId()){
-            case (R.id.changeName):
-                return true;
+    private boolean dateChecker(int obtainDay, int obtainMonth, int obtainYear) {
+//        Method to check dates are valid or not.
+        Calendar calendar = Calendar.getInstance();
+        int currentDay = calendar.get(Calendar.DAY_OF_MONTH);
+        int currentMonth = calendar.get(Calendar.MONTH) + 1;
+        int currentYear = calendar.get(Calendar.YEAR);
+        String obtainDateString = obtainDay + "/" + obtainMonth + "/" + obtainYear;
+        String currentDateInString = currentDay + "/" + currentMonth + "/" + currentYear;
+        Date currentDate = null;
+        Date obtainDate = null;
+        try {
+            obtainDate = new SimpleDateFormat("dd/MM/yyyy").parse(obtainDateString);
+            currentDate = new SimpleDateFormat("dd/MM/yyyy").parse(currentDateInString);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        if(obtainDate.compareTo(currentDate) >= 0){
+            return true;
         }
         return false;
     }
