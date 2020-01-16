@@ -42,9 +42,13 @@ public class NotificationHelper extends ContextWrapper {
     }
 
     public NotificationCompat.Builder getChannelNotification(){
+        String descriptionNew = "Description : " + description;
+        if(description == null){
+            descriptionNew = "Time to achieve this Goal";
+        }
         return new NotificationCompat.Builder(getApplicationContext(), channelID)
-                .setContentTitle(title)
-                .setContentText(description)
+                .setContentTitle("Time to Start: " + title)
+                .setContentText(descriptionNew)
                 .setSmallIcon(R.drawable.todo_icon);
     }
 }

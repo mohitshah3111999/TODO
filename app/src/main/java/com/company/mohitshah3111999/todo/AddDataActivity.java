@@ -10,7 +10,6 @@ import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
@@ -23,7 +22,10 @@ import java.util.Date;
 
 import static com.company.mohitshah3111999.todo.ScheduleForCurrentDayActivity.arrayList;
 import static com.company.mohitshah3111999.todo.ScheduleForCurrentDayActivity.customAdapter;
-import static com.company.mohitshah3111999.todo.ScheduleForCurrentDayActivity.newtextView;
+import static com.company.mohitshah3111999.todo.ScheduleForCurrentDayActivity.makeInOrder;
+import static com.company.mohitshah3111999.todo.ScheduleForCurrentDayActivity.newTextView;
+import static com.company.mohitshah3111999.todo.ScheduleForCurrentDayActivity.staticDescription;
+import static com.company.mohitshah3111999.todo.ScheduleForCurrentDayActivity.staticTitle;
 
 public class AddDataActivity extends AppCompatActivity {
 
@@ -39,12 +41,15 @@ public class AddDataActivity extends AppCompatActivity {
         String titleInString = title.getText().toString();
         String descriptionInString = description.getText().toString();
         String day = getIntent().getStringExtra("currentDay");
+        staticTitle = titleInString;
+        staticDescription = descriptionInString;
         arrayList.add(new DataHolder(fromTime, toTime, title.getText().toString(), description.getText().toString()));
-        newtextView.setVisibility(View.INVISIBLE);
+        newTextView.setVisibility(View.INVISIBLE);
         customAdapter.notifyDataSetChanged();
         sqLiteDatabase.execSQL("insert into data values ('" + day + "', '"
         + fromTime + "', '" + toTime + "', '" + titleInString +
                 "', '" + descriptionInString + "')");
+        makeInOrder();
         finish();
     }
 
@@ -58,7 +63,6 @@ public class AddDataActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         getWindow().setStatusBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 

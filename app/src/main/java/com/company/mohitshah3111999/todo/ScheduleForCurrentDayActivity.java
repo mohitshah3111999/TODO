@@ -37,12 +37,12 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
     int toHour, toMinute, fromHour, fromMinute;
     static ArrayList<DataHolder> arrayList;
     static CustomAdapter customAdapter;
-    SQLiteDatabase sqLiteDatabase;
-    String day;
-    static TextView newtextView;
+    static SQLiteDatabase sqLiteDatabase;
+    static String day, staticTitle, staticDescription;
+    static TextView newTextView;
 
     public void gotoNext(View view){
-        Calendar calendar = Calendar.getInstance();
+        final Calendar calendar = Calendar.getInstance();
         toHour = calendar.get(Calendar.HOUR_OF_DAY);
         toMinute = calendar.get(Calendar.MINUTE);
         fromHour = calendar.get(Calendar.HOUR_OF_DAY);
@@ -63,13 +63,17 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
                             e.printStackTrace();
                         }
                         if(checkTime(date)) {
-                            Intent intent = new Intent(getApplicationContext(), AddDataActivity.class);
-                            intent.putExtra("currentDay", day);
-                            intent.putExtra("fromHour", fromHour);
-                            intent.putExtra("fromMinute", fromMinute);
-                            intent.putExtra("toHour", i);
-                            intent.putExtra("toMinute", i1);
-                            startActivity(intent);
+                            if(eligibleOrNot(fromHour, fromMinute, i, i1)) {
+                                Intent intent = new Intent(getApplicationContext(), AddDataActivity.class);
+                                intent.putExtra("currentDay", day);
+                                intent.putExtra("fromHour", fromHour);
+                                intent.putExtra("fromMinute", fromMinute);
+                                intent.putExtra("toHour", i);
+                                intent.putExtra("toMinute", i1);
+                                startActivity(intent);
+                            }else{
+                                Toast.makeText(ScheduleForCurrentDayActivity.this, "Clash between times", Toast.LENGTH_SHORT).show();
+                            }
                         }else{
                             Toast.makeText(ScheduleForCurrentDayActivity.this, "Enter Right time", Toast.LENGTH_SHORT).show();
                         }
@@ -80,38 +84,49 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
                 calendar1.set(Calendar.HOUR_OF_DAY, fromHour);
                 calendar1.set(Calendar.MINUTE, fromMinute);
                 calendar1.set(Calendar.SECOND, 0);
+                spiltDay(calendar1);
                 startAlarm(calendar1);
             }
         }, fromHour, 0, DateFormat.is24HourFormat(getApplicationContext()));
         timePickerDialog1.show();
     }
 
-    private boolean checkEligibleOrNot(int fromHour, int fromMinute) {
-//        TODO we will create a method in which we will compare the times and will see that
-//         the upcoming time is not colliding with any of the before.
-        int count = 0;
-        for(DataHolder item: arrayList){
-            String endTime = item.toTime;
-            String enteredTime = fromHour + ":" + fromMinute;
-            Date d1 = null, d2 = null;
-            try {
-                d1 = new SimpleDateFormat("HH:mm").parse(endTime);
-                d2 = new SimpleDateFormat("HH:mm").parse(enteredTime);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-            if(d1.before(d2)){
-                count = 1;
+    private boolean eligibleOrNot(int fromHour, int fromMinute, int toHour, int toMinute){
+        Date fromDate = null, toDate = null, convertedFromTime = null, convertedToTime = null;
+        try {
+            fromDate = new SimpleDateFormat("HH:mm").parse(fromHour + ":" + fromMinute);
+            toDate = new SimpleDateFormat("HH:mm").parse(toHour + ":" + toMinute);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        if(arrayList.size() != 0){
+            for(DataHolder item: arrayList){
+                try {
+                    convertedFromTime = new SimpleDateFormat("HH:mm").parse(item.fromTime);
+                    convertedToTime = new SimpleDateFormat("HH:mm").parse(item.toTime);
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+                if(convertedFromTime.before(fromDate) && convertedToTime.after(fromDate)){
+                    return false;
+                }else if(convertedFromTime.before(toDate) && convertedToTime.after(toDate)){
+                    return false;
+                }
             }
         }
-        if(count == 1){
-            return false;
-        }else {
-            return true;
-        }
+        return true;
     }
 
-    private void makeInOrder() {
+    private void spiltDay(Calendar calendar1) {
+        int currentDay = Integer.valueOf(day.split("/")[0]);
+        int currentMonth = Integer.valueOf(day.split("/")[1]);
+        int currentYear = Integer.valueOf(day.split("/")[2]);
+        calendar1.set(Calendar.DAY_OF_MONTH, currentDay);
+        calendar1.set(Calendar.MONTH, currentMonth-1);
+        calendar1.set(Calendar.YEAR, currentYear);
+    }
+
+    static void makeInOrder() {
         if(arrayList.size() != 0){
             ArrayList<Date> fromTimeList = new ArrayList<>();
             for(DataHolder time: arrayList){
@@ -160,7 +175,7 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        newtextView = findViewById(R.id.textView5);
+        newTextView = findViewById(R.id.textView5);
 
         sqLiteDatabase = this.openOrCreateDatabase("dates", MODE_PRIVATE, null);
 
@@ -190,9 +205,9 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
                                         new String[]{arrayList.get(i).taskTitle, arrayList.get(i).fromTime, arrayList.get(i).toTime, arrayList.get(i).taskDescription, day});
                                 arrayList.remove(i);
                                 if(arrayList.size() != 0){
-                                    newtextView.setVisibility(View.INVISIBLE);
+                                    newTextView.setVisibility(View.INVISIBLE);
                                 }else{
-                                    newtextView.setVisibility(View.VISIBLE);
+                                    newTextView.setVisibility(View.VISIBLE);
                                 }
                                 customAdapter.notifyDataSetChanged();
                             }
@@ -203,7 +218,6 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
             }
         });
 
-//        TODO add onclick later on.
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
@@ -235,12 +249,12 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
                 cursor.moveToNext();
             }
         }catch (Exception e) {
-            Log.i("Error", e.toString());
+            Log.i("NewError", e.toString());
         }
         if(arrayList.size() != 0){
-            newtextView.setVisibility(View.INVISIBLE);
+            newTextView.setVisibility(View.INVISIBLE);
         }else{
-            newtextView.setVisibility(View.VISIBLE);
+            newTextView.setVisibility(View.VISIBLE);
         }
         customAdapter.notifyDataSetChanged();
     }
@@ -248,8 +262,12 @@ public class ScheduleForCurrentDayActivity extends AppCompatActivity{
     private boolean checkTime(Date otherDate) {
         /** format of other date will be like "dd/MM/yyyy HH:mm".
          */
-        Date date = new Date();
-        return otherDate.after(date);
+        Date newdate = new Date();
+        newdate.setSeconds(0);
+        String newDateString = newdate.toString();
+        String otherDateString = otherDate.toString();
+//        Date Comparison is not working properly.
+        return otherDate.after(newdate) || newDateString.equals(otherDateString);
     }
 
 
